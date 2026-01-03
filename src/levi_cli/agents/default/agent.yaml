@@ -1,0 +1,24 @@
+version: 1
+agent:
+  name: ""
+  system_prompt_path: ./system.md
+  system_prompt_args:
+    ROLE_ADDITIONAL: ""
+  tools:
+    - "levi_cli.tools.multiagent:Task"
+    # - "levi_cli.tools.multiagent:CreateSubagent"
+    # - "levi_cli.tools.dmail:SendDMail"
+    # - "levi_cli.tools.think:Think"
+    - "levi_cli.tools.todo:SetTodoList"
+    - "levi_cli.tools.shell:Shell"
+    - "levi_cli.tools.file:ReadFile"
+    - "levi_cli.tools.file:Glob"
+    - "levi_cli.tools.file:Grep"
+    - "levi_cli.tools.file:WriteFile"
+    - "levi_cli.tools.file:StrReplaceFile"
+    - "levi_cli.tools.web:SearchWeb"
+    - "levi_cli.tools.web:FetchURL"
+  subagents:
+    coder:
+      path: ./sub.yaml
+      description: "Good at general software engineering tasks."
