@@ -50,7 +50,6 @@ class Metadata(BaseModel):
 
     def new_work_dir_meta(self, path: Path) -> WorkDirMeta:  # 改这里
         """Create a new work directory metadata."""
-        # 删除 kaos 参数 ↓
         wd_meta = WorkDirMeta(path=str(path))
         self.work_dirs.append(wd_meta)
         return wd_meta
