@@ -21,6 +21,7 @@ dependencies = [
     "tenacity==9.1.2",
     "fastmcp==2.12.5",
     "pydantic==2.12.5",
+    "duckduckgo-search>=6.0.0",
     "httpx[socks]==0.28.1",
 ]
 

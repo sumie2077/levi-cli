@@ -66,9 +66,9 @@ async def list_directory(work_dir: Path) -> str:
 
     entries: list[str] = []
     # Iterate entries; tolerate per-entry stat failures (broken symlinks, permissions, etc.).
-    async for entry in work_dir.iterdir():
+    for entry in work_dir.iterdir():
         try:
-            st = await entry.stat()
+            st = entry.stat()
         except OSError:
             # Broken symlink, permission error, etc. – keep listing other entries.
             entries.append(f"?--------- {'?':>10} {entry.name} [stat failed]")
