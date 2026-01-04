@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 class LeviCLIException(Exception):
-    """Base exception class for Kimi CLI."""
+    """Base exception class for Levi CLI."""
 
     pass
 
