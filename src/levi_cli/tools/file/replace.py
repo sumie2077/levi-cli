@@ -43,7 +43,7 @@ class StrReplaceFile(CallableTool2[Params]):
     async def _validate_path(self, path: Path) -> ToolError | None:
         """Validate that the path is safe to edit."""
         # Check for path traversal attempts
-        resolved_path = path.canonical()
+        resolved_path = path.resolve()
 
         # Ensure the path is within work directory
         if not is_within_directory(resolved_path, self._work_dir):

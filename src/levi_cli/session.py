@@ -82,7 +82,7 @@ class Session:
     @staticmethod
     async def create(work_dir: Path, _context_file: Path | None = None) -> Session:
         """Create a new session for a work directory."""
-        work_dir = work_dir.canonical()
+        work_dir = work_dir.resolve()
         logger.debug("Creating new session for work directory: {work_dir}", work_dir=work_dir)
 
         metadata = load_metadata()
@@ -129,7 +129,7 @@ class Session:
     @staticmethod
     async def find(work_dir: Path, session_id: str) -> Session | None:
         """Find a session by work directory and session ID."""
-        work_dir = work_dir.canonical()
+        work_dir = work_dir.resolve()
         logger.debug(
             "Finding session for work directory: {work_dir}, session ID: {session_id}",
             work_dir=work_dir,
@@ -170,7 +170,7 @@ class Session:
     @staticmethod
     async def list(work_dir: Path) -> list[Session]:
         """List all sessions for a work directory."""
-        work_dir = work_dir.canonical()
+        work_dir = work_dir.resolve()
         logger.debug("Listing sessions for work directory: {work_dir}", work_dir=work_dir)
 
         metadata = load_metadata()
@@ -214,7 +214,7 @@ class Session:
     @staticmethod
     async def continue_(work_dir: Path) -> Session | None:
         """Get the last session for a work directory."""
-        work_dir = work_dir.canonical()
+        work_dir = work_dir.resolve()
         logger.debug("Continuing session for work directory: {work_dir}", work_dir=work_dir)
 
         metadata = load_metadata()

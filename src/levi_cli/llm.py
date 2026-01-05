@@ -120,35 +120,33 @@ def create_llm(
 ) -> LLM:
     match provider.type:
         case "qwen":
-            from kosong.contrib.chat_provider.openai_responses import OpenAIResponses
-
-            chat_provider = OpenAIResponses(
+            from kosong.contrib.chat_provider.openai_legacy import OpenAILegacy
+            chat_provider = OpenAILegacy(
                 model=model.model,
                 base_url=provider.base_url,
                 api_key=provider.api_key.get_secret_value(),
             )
         case "deepseek":
-            from kosong.contrib.chat_provider.openai_responses import OpenAIResponses
+            from kosong.contrib.chat_provider.openai_legacy import OpenAILegacy
 
-            chat_provider = OpenAIResponses(
+            chat_provider = OpenAILegacy(
                 model=model.model,
                 base_url=provider.base_url,
                 api_key=provider.api_key.get_secret_value(),
             )
         case "local":
-            from kosong.contrib.chat_provider.openai_responses import OpenAIResponses
+            from kosong.contrib.chat_provider.openai_legacy import OpenAILegacy
 
-            chat_provider = OpenAIResponses(
+            chat_provider = OpenAILegacy(
                 model=model.model,
                 base_url=provider.base_url,
                 api_key=provider.api_key.get_secret_value(),
             )
         case "_chaos":
             from kosong.chat_provider.chaos import ChaosChatProvider, ChaosConfig
-            from kosong.contrib.chat_provider.openai_responses import OpenAIResponses
-
+            from kosong.contrib.chat_provider.openai_legacy import OpenAILegacy
             chat_provider = ChaosChatProvider(
-                provider=OpenAIResponses(
+                provider=OpenAILegacy(
                     model=model.model,
                     base_url=provider.base_url,
                     api_key=provider.api_key.get_secret_value(),

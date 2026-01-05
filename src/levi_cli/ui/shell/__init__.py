@@ -40,7 +40,7 @@ class Shell:
             logger.info("Running agent with command: {command}", command=command)
             return await self._run_soul_command(command)
 
-        self._start_background_task(self._auto_update())
+        # self._start_background_task(self._auto_update())
 
         _print_welcome_info(self.soul.name or "Levi CLI", self._welcome_info)
 

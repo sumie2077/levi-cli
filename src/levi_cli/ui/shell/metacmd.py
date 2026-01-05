@@ -21,7 +21,6 @@ from levi_cli.soul.context import Context
 from levi_cli.soul.levisoul import LeviSoul
 from levi_cli.soul.message import system
 from levi_cli.ui.shell.console import console
-from levi_cli.utils.changelog import CHANGELOG, format_release_notes
 from levi_cli.utils.datetime import format_relative_time
 from loguru import logger
 
@@ -186,14 +185,6 @@ def version(app: Shell, args: list[str]):
     from levi_cli.constant import VERSION
 
     console.print(f"levi, version {VERSION}")
-
-
-@meta_command(name="release-notes")
-def release_notes(app: Shell, args: list[str]):
-    """Show release notes"""
-    text = format_release_notes(CHANGELOG, include_lib_changes=False)
-    with console.pager(styles=True):
-        console.print(Panel.fit(text, border_style="wheat4", title="Release Notes"))
 
 
 @meta_command
