@@ -11,8 +11,6 @@ from pydantic import SecretStr
 from levi_cli.config import (
     LLMModel,
     LLMProvider,
-    SearchServiceConfig,
-    FetchServiceConfig,
     load_config,
     save_config,
 )
@@ -27,8 +25,6 @@ class _Platform(NamedTuple):
     id: str
     name: str
     base_url: str
-    search_url: str | None = None
-    fetch_url: str | None = None
     allowed_prefixes: list[str] | None = None
 
 
@@ -38,8 +34,6 @@ _PLATFORMS = [
         id="qwen-dashscope",
         name="Qwen (Aliyun DashScope)",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        search_url=None,
-        fetch_url=None,
         allowed_prefixes=None,
     ),
     # 2. DeepSeek (官方 API)
@@ -47,8 +41,6 @@ _PLATFORMS = [
         id="deepseek-official",
         name="DeepSeek Official",
         base_url="https://api.deepseek.com",
-        search_url=None,
-        fetch_url=None,
         allowed_prefixes=None,
     ),
     # 3. 本地模型 (Localhost)
@@ -90,18 +82,7 @@ async def setup(app: Shell, args: list[str]):
     )
     config.default_model = result.model_id
 
-    if result.platform.search_url:
-        config.services.SearchServiceConfig = SearchServiceConfig(
-            base_url=result.platform.search_url,
-            api_key=result.api_key,
-        )
-
-    if result.platform.fetch_url:
-        config.services.FetchServiceConfig = FetchServiceConfig(
-            base_url=result.platform.fetch_url,
-            api_key=result.api_key,
-        )
-
+    
     save_config(config)
     console.print("[green]✓[/green] Levi CLI has been setup! Reloading...")
     await asyncio.sleep(1)

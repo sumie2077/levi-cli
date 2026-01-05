@@ -6,7 +6,6 @@ import trafilatura
 from kosong.tooling import CallableTool2, ToolReturnValue
 from pydantic import BaseModel, Field
 
-from levi_cli.config import Config
 from levi_cli.constant import USER_AGENT
 from levi_cli.soul.toolset import get_current_tool_call_or_none
 from levi_cli.tools.utils import ToolResultBuilder, load_desc
@@ -23,18 +22,12 @@ class FetchURL(CallableTool2[Params]):
     description: str = load_desc(Path(__file__).parent / "fetch.md", {})
     params: type[Params] = Params
 
-    def __init__(self, config: Config):
+    def __init__(self):
         super().__init__()
-        self._service_config = config.services.fetch
-
+        
     @override
     async def __call__(self, params: Params) -> ToolReturnValue:
-        if self._service_config:
-            ret = await self._fetch_with_service(params)
-            if not ret.is_error:
-                return ret
-            logger.warning("Failed to fetch URL via service: {error}", error=ret.message)
-            # fallback to local fetch if service fetch fails
+        
         return await self.fetch_with_http_get(params)
 
     @staticmethod
@@ -105,46 +98,4 @@ class FetchURL(CallableTool2[Params]):
         builder.write(extracted_text)
         return builder.ok("The returned content is the main text content extracted from the page.")
 
-    async def _fetch_with_service(self, params: Params) -> ToolReturnValue:
-        assert self._service_config is not None
-
-        tool_call = get_current_tool_call_or_none()
-        assert tool_call is not None, "Tool call is expected to be set"
-
-        builder = ToolResultBuilder(max_line_length=None)
-        headers = {
-            "User-Agent": USER_AGENT,
-            "Authorization": f"Bearer {self._service_config.api_key.get_secret_value()}",
-            "Accept": "text/markdown",
-            "X-Msh-Tool-Call-Id": tool_call.id,
-            **(self._service_config.custom_headers or {}),
-        }
-
-        try:
-            async with (
-                new_client_session() as session,
-                session.post(
-                    self._service_config.base_url,
-                    headers=headers,
-                    json={"url": params.url},
-                ) as response,
-            ):
-                if response.status != 200:
-                    return builder.error(
-                        f"Failed to fetch URL via service. Status: {response.status}.",
-                        brief="Failed to fetch URL via fetch service",
-                    )
-
-                content = await response.text()
-                builder.write(content)
-                return builder.ok(
-                    "The returned content is the main content extracted from the page."
-                )
-        except aiohttp.ClientError as e:
-            return builder.error(
-                (
-                    f"Failed to fetch URL via service due to network error: {str(e)}. "
-                    "This may indicate the service is unreachable."
-                ),
-                brief="Network error when calling fetch service",
-            )
+    

@@ -55,44 +55,6 @@ class LoopControl(BaseModel):
 
 
 
-class SearchServiceConfig(BaseModel):
-    """Search service configuration."""
-
-    base_url: str
-    """Base URL for search service."""
-    api_key: SecretStr
-    """API key for search service."""
-    custom_headers: dict[str, str] | None = None
-    """Custom headers to include in API requests."""
-
-    @field_serializer("api_key", when_used="json")
-    def dump_secret(self, v: SecretStr):
-        return v.get_secret_value()
-
-
-class FetchServiceConfig(BaseModel):
-    """Fetch service configuration."""
-
-    base_url: str
-    """Base URL for fetch service."""
-    api_key: SecretStr
-    """API key for fetch service."""
-    custom_headers: dict[str, str] | None = None
-    """Custom headers to include in API requests."""
-
-    @field_serializer("api_key", when_used="json")
-    def dump_secret(self, v: SecretStr):
-        return v.get_secret_value()
-
-
-class Services(BaseModel):
-    """Services configuration."""
-
-    search: SearchServiceConfig | None = None
-    """Search service configuration."""
-    fetch: FetchServiceConfig | None = None
-    """Fetch service configuration."""
-
 
 # ============================================
 
@@ -106,8 +68,7 @@ class Config(BaseModel):
         default_factory=dict, description="List of LLM providers"
     )
     loop_control: LoopControl = Field(default_factory=LoopControl, description="Agent loop control")
-    services: Services = Field(default_factory=Services, description="Services configuration")
-
+    
     @model_validator(mode="after")
     def validate_model(self) -> Self:
         if self.default_model and self.default_model not in self.models:
@@ -129,7 +90,6 @@ def get_default_config() -> Config:
         default_model="",
         models={},
         providers={},
-        services=Services(),
     )
 
 

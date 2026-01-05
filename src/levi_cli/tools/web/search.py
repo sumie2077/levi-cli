@@ -1,11 +1,11 @@
 from pathlib import Path
 from typing import override
+import os
 
 from duckduckgo_search import DDGS
 from kosong.tooling import CallableTool2, ToolReturnValue
 from pydantic import BaseModel, Field, ValidationError
 
-from levi_cli.config import Config
 from levi_cli.constant import USER_AGENT
 from levi_cli.soul.toolset import get_current_tool_call_or_none
 from levi_cli.tools.utils import ToolResultBuilder, load_desc
@@ -29,8 +29,6 @@ class Params(BaseModel):
     include_content: bool = Field(
         description=(
             "Whether to include the content of the web pages in the results. "
-            "This parameter is only effective when a search service is configured. "
-            "When using DuckDuckGo (fallback), only snippets are returned. "
             "It can consume a large amount of tokens when this is set to True. "
             "You should avoid enabling this when `limit` is set to a large value."
         ),
@@ -43,95 +41,94 @@ class SearchWeb(CallableTool2[Params]):
     description: str = load_desc(Path(__file__).parent / "search.md", {})
     params: type[Params] = Params
 
-    def __init__(self, config: Config):
+    def __init__(self):
         super().__init__()
-        # Service-first strategy: use configured search service if available, else fallback to DuckDuckGo
-        self._service_config = config.services.search
-
+        self._tavily_api_key = os.getenv("TAVILY_API_KEY")
+        # 可以在这里配置 Tavily 或其他搜索服务
+        
     @override
     async def __call__(self, params: Params) -> ToolReturnValue:
-        builder = ToolResultBuilder(max_line_length=None)
-
-        # Try service-based search if configured
-        if self._service_config:
-            ret = await self._search_with_service(params)
+    # 优先使用 Tavily
+        if self._tavily_api_key:
+            ret = await self._search_with_tavily(params)
             if not ret.is_error:
                 return ret
-            logger.warning("Failed to search via service: {error}", error=ret.message)
-            # fallback to DuckDuckGo if service search fails
+            logger.warning("Tavily search failed, falling back to DuckDuckGo")
         
-        return await self._search_with_ddgs(params)
+        # 降级到 DuckDuckGo
+        return await self._search_with_ddgs(params)       
+        
 
-    async def _search_with_service(self, params: Params) -> ToolReturnValue:
-        """Search using configured service"""
-        assert self._service_config is not None
-        
+    
+    async def _search_with_tavily(self, params: Params) -> ToolReturnValue:
+        """Search using Tavily API"""
         builder = ToolResultBuilder(max_line_length=None)
-
-        if not self._service_config.base_url or not self._service_config.api_key.get_secret_value():
+        
+        if not self._tavily_api_key:
             return builder.error(
-                "Search service is not properly configured.",
-                brief="Search service not configured",
+                "Tavily API key not found. Please set TAVILY_API_KEY environment variable.",
+                brief="Tavily API key not configured",
             )
-
-        tool_call = get_current_tool_call_or_none()
-        assert tool_call is not None, "Tool call is expected to be set"
-
+        
         try:
             async with (
                 new_client_session() as session,
                 session.post(
-                    self._service_config.base_url,
+                    "https://api.tavily.com/search",
                     headers={
-                        "User-Agent": USER_AGENT,
-                        "Authorization": f"Bearer {self._service_config.api_key.get_secret_value()}",
-                        "X-Tool-Call-Id": tool_call.id,
-                        **(self._service_config.custom_headers or {}),
+                        "Content-Type": "application/json",
                     },
                     json={
-                        "text_query": params.query,
-                        "limit": params.limit,
-                        "enable_page_crawling": params.include_content,
-                        "timeout_seconds": 30,
+                        "api_key": self._tavily_api_key,
+                        "query": params.query,
+                        "max_results": params.limit,
+                        "include_answer": False,
+                        "include_raw_content": params.include_content,
+                        "include_images": False,
                     },
                 ) as response,
             ):
                 if response.status != 200:
+                    error_text = await response.text()
                     return builder.error(
-                        (
-                            f"Failed to search. Status: {response.status}. "
-                            "This may indicate the search service is currently unavailable."
-                        ),
-                        brief="Failed to search",
+                        f"Tavily API request failed. Status: {response.status}. Error: {error_text}",
+                        brief=f"Tavily API error {response.status}",
                     )
-
-                try:
-                    results = Response(**await response.json()).search_results
-                except ValidationError as e:
+                
+                result = await response.json()
+                
+                if "results" not in result or not result["results"]:
                     return builder.error(
-                        (
-                            f"Failed to parse search results. Error: {e}. "
-                            "This may indicate the search service is currently unavailable."
-                        ),
-                        brief="Failed to parse search results",
+                        "No search results found. You may want to try a different query.",
+                        brief="No results found",
                     )
-
-            for i, result in enumerate(results):
-                if i > 0:
-                    builder.write("---\n\n")
-                builder.write(
-                    f"Title: {result.title}\nDate: {result.date}\n"
-                    f"URL: {result.url}\nSummary: {result.snippet}\n\n"
-                )
-                if result.content:
-                    builder.write(f"{result.content}\n\n")
-
-            return builder.ok()
+                
+                for i, item in enumerate(result["results"]):
+                    if i > 0:
+                        builder.write("---\n\n")
+                    
+                    title = item.get("title", "N/A")
+                    url = item.get("url", "N/A")
+                    snippet = item.get("content", "N/A")
+                    
+                    builder.write(
+                        f"Title: {title}\n"
+                        f"URL: {url}\n"
+                        f"Summary: {snippet}\n\n"
+                    )
+                    
+                    if params.include_content and item.get("raw_content"):
+                        builder.write(f"{item['raw_content']}\n\n")
+                
+                return builder.ok()
+                
         except Exception as e:
+            logger.error("Tavily search failed: {error}", error=str(e))
             return builder.error(
-                f"Failed to search via service due to error: {str(e)}",
-                brief="Service search error",
+                f"Failed to search via Tavily: {str(e)}",
+                brief="Tavily search failed",
             )
+
 
     @staticmethod
     async def _search_with_ddgs(params: Params) -> ToolReturnValue:
@@ -182,18 +179,3 @@ class SearchWeb(CallableTool2[Params]):
                 "This may indicate a network issue or service unavailability.",
                 brief="Search failed",
             )
-
-
-class SearchResult(BaseModel):
-    site_name: str
-    title: str
-    url: str
-    snippet: str
-    content: str = ""
-    date: str = ""
-    icon: str = ""
-    mime: str = ""
-
-
-class Response(BaseModel):
-    search_results: list[SearchResult]
