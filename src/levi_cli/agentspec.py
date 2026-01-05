@@ -15,7 +15,7 @@ def get_agents_dir() -> Path:
 
 
 DEFAULT_AGENT_FILE = get_agents_dir() / "default" / "agent.yaml"
-
+# 后续可添加更多内置 agent
 
 
 class Inherit(NamedTuple):
