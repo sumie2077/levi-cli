@@ -34,7 +34,7 @@ _PLATFORMS = [
         id="qwen-dashscope",
         name="Qwen (Aliyun DashScope)",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        allowed_prefixes=None,
+        allowed_prefixes=["qwen-flash", "qwen-image-max", "qwen-plus", "qwen3-vl-plus", "qwen3-omni-flash"],
     ),
     # 2. DeepSeek (官方 API)
     _Platform(
@@ -109,8 +109,9 @@ def get_context_length(model_id: str, api_data: dict) -> int:
     mid = model_id.lower()
     
     # 2. DeepSeek
-    if "deepseek-r1" in mid or "deepseek-v3" in mid:
-        return 65536  # 64k (保守设置)
+    if "deepseek" in mid:
+        # 全是128k
+        return 131072
     
     # 3. Qwen
     if "qwen-long" in mid:
